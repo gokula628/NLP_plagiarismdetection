@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Plagiarism Detection System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!-- ================= HEADER ================= -->
+<header class="header">
+    <div class="logo">
+        <div class="logo-icon">NLP</div>
+        <div>
+            <h2>Academic Plagiarism Detector</h2>
+            <p>TF-IDF & N-Gram Text Similarity System</p>
+        </div>
+    </div>
+</header>
+
+<main class="main">
+
+    <!-- ================= HERO ================= -->
+    <section class="hero">
+        <div class="badge">NLP SIMILARITY ANALYSIS</div>
+        <h1>Academic <span>Plagiarism Detector</span></h1>
+        <p>
+            Compare academic documents  
+            to identify plagiarized text.
+        </p>
+    </section>
+
+    <!-- ================= MODE TABS ================= -->
+    <div class="tabs-nav">
+        <button class="tab-btn {% if active_tab == 'dual' %}active{% endif %}" onclick="switchTab('dual')">
+            📑 Dual File Compare
+        </button>
+        <button class="tab-btn {% if active_tab == 'batch' %}active{% endif %}" onclick="switchTab('batch')">
+            📦 Class Zip Batch Heatmap
+        </button>
+    </div>
+
+    <!-- ================= UPLOAD SECTION ================= -->
+    <section class="upload-section">
+
+        <!-- TAB 1: DUAL FILE COMPARISON -->
+        <div id="tab-dual" class="tab-content {% if active_tab == 'dual' %}active{% endif %}">
+            <div class="section-title">
+                <h2>Compare Two Academic Documents</h2>
+                <p>Upload two documents to calculate their textual similarity score.</p>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="mode" value="dual">
+                <div class="text-container">
+                    <div class="box">
+                        <div class="document-header">
+                            <div class="document-icon">01</div>
+                            <div>
+                                <h3>Reference Document</h3>
+                                <p>Original academic document</p>
+                            </div>
+                        </div>
+                        <div class="upload-area">
+                            <div class="upload-icon">↑</div>
+                            <h4>Upload First Document</h4>
+                            <p>Select a PDF or DOCX file</p>
+                            <input type="file" name="file1" accept=".pdf,.docx" required>
+                        </div>
+                    </div>
+
+                    <div class="box">
+                        <div class="document-header">
+                            <div class="document-icon">02</div>
+                            <div>
+                                <h3>Comparison Document</h3>
+                                <p>Student assignment to check</p>
+                            </div>
+                        </div>
+                        <div class="upload-area">
+                            <div class="upload-icon">↑</div>
+                            <h4>Upload Second Document</h4>
+                            <p>Select a PDF or DOCX file</p>
+                            <input type="file" name="file2" accept=".pdf,.docx" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="button-container">
+                    <button type="submit">Analyze Both Documents</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- TAB 2: CLASS-WIDE ZIP BATCH ANALYSIS -->
+        <div id="tab-batch" class="tab-content {% if active_tab == 'batch' %}active{% endif %}">
+            <div class="section-title">
+                <h2>Class-Wide Zip Batch Plagiarism Heatmap</h2>
+                <p>Upload a .zip folder containing student PDF/DOCX assignments to generate an N x N Class Matrix.</p>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="mode" value="batch">
+                <div class="box single-box">
+                    <div class="document-header">
+                        <div class="document-icon">ZIP</div>
+                        <div>
+                            <h3>Whole Class Archive (.zip)</h3>
+                            <p>Contains multiple student PDF/DOCX files</p>
+                        </div>
+                    </div>
+                    <div class="upload-area">
+                        <div class="upload-icon">📦</div>
+                        <h4>Upload Class Assignments (.zip)</h4>
+                        <p>Extracts & compares all files pairwise</p>
+                        <input type="file" name="zip_file" accept=".zip" required>
+                    </div>
+                </div>
+
+                <div class="button-container">
+                    <button type="submit">Generate Class Heatmap Matrix</button>
+                </div>
+            </form>
+        </div>
+
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+    </section>
+
+    <!-- ===================================================== -->
+    <!-- ================= ANALYSIS RESULTS ================== -->
+    <!-- ===================================================== -->
+
+    {% if similarity is not none %}
+    <section class="analysis-results">
+
+        <!-- ================= MAIN SCORE BANNER ================= -->
+        <div class="result">
+            <div class="result-label">OVERALL PLAGIARISM RISK</div>
+            <h2>{{ similarity }}%</h2>
+            <div class="result-status">{{ result }}</div>
+        </div>
+
+        <!-- ================= VISUAL ANALYTICS DASHBOARD (CHART.JS) ================= -->
+        <div class="dashboard-section">
+            <div class="section-title">
+                <h2>Interactive Plagiarism Visual Chart</h2>
+                <p>Visual representation of document similarity vs unique original content.</p>
+            </div>
+
+            <div class="charts-grid-single">
+                <div class="chart-card">
+                    <h4>Plagiarism Risk Breakdown</h4>
+                    <canvas id="riskChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SIDE-BY-SIDE VISUAL HIGHLIGHTING ================= -->
+        {% if html1 and html2 %}
+        <div class="visual-diff-section">
+            <div class="section-title">
+                <h2>Side-by-Side Visual Diff Comparison</h2>
+                
+            </div>
+
+            <div class="diff-container">
+                <div class="diff-panel">
+                    <h3>Document 1 (Uploaded)</h3>
+                    <div class="diff-text-box" id="diff-box1">
+                        {{ html1 | safe }}
+                    </div>
+                </div>
+
+                <div class="diff-panel">
+                    <h3>Document 2 / Matched Reference</h3>
+                    <div class="diff-text-box" id="diff-box2">
+                        {{ html2 | safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ================= PDF REPORT DOWNLOAD ================= -->
+        <div class="report-section">
+            <h2>Download Formal Plagiarism Report</h2>
+            <p>Generate a clean PDF report containing the similarity analysis results.</p>
+            <a href="{{ url_for('download_report') }}" class="report-button" download="Plagiarism_Report.pdf">📥 Download PDF Report</a>
+        </div>
+
+    </section>
+    {% endif %}
+
+    <!-- ===================================================== -->
+    <!-- ============ CLASS-WIDE ZIP BATCH MATRIX RESULTS ============ -->
+    <!-- ===================================================== -->
+
+    {% if batch_result %}
+    <section class="analysis-results">
+
+        <!-- OVERALL CLASS AVERAGE SCORE BANNER -->
+        <div class="result">
+            <div class="result-label">OVERALL CLASS AVERAGE SIMILARITY</div>
+            <h2>{{ batch_result.overall_average_similarity }}%</h2>
+            <div class="result-status">
+                {% if batch_result.overall_average_similarity >= 70 %}
+                    High Class Similarity Overlap
+                {% elif batch_result.overall_average_similarity >= 40 %}
+                    Moderate Class Similarity Overlap
+                {% else %}
+                    Low / Original Submissions Across Class
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="section-title" style="margin-top: 35px;">
+            <h2>Class-Wide Plagiarism Heatmap Matrix ({{ batch_result.total_documents }} Students)</h2>
+            <p>Pairwise evaluation across all uploaded assignment files in the zip archive.</p>
+        </div>
+
+        <!-- TOP PLAGIARIZED PAIRS IN CLASS -->
+        <div class="top-pairs-section">
+            <h3>🔥 All Pairwise Student Comparisons in Class ({{ batch_result.top_pairs|length }} Total Comparisons)</h3>
+            <div class="pairs-grid">
+                {% for pair in batch_result.top_pairs %}
+                <div class="pair-card {{ 'pair-high' if pair.similarity >= 70 else ('pair-med' if pair.similarity >= 40 else 'pair-low') }}">
+                    <div class="pair-users">
+                        <span>📄 {{ pair.doc1 }}</span>
+                        <small>vs</small>
+                        <span>📄 {{ pair.doc2 }}</span>
+                    </div>
+                    <div class="pair-badge">{{ pair.similarity }}% Match</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- HEATMAP TABLE -->
+        <div class="matrix-table-container">
+            <h3>Class Matrix Heatmap Table</h3>
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th>Student Files</th>
+                        {% for fn in batch_result.filenames %}
+                        <th title="{{ fn }}">{{ loop.index }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in batch_result.matrix %}
+                    {% set i = loop.index0 %}
+                    <tr>
+                        <td class="fn-cell"><strong>{{ i+1 }}. {{ batch_result.filenames[i] }}</strong></td>
+                        {% for cell in row %}
+                        <td class="cell-val {{ 'cell-high' if cell >= 70 and loop.index0 != i else ('cell-med' if cell >= 40 and loop.index0 != i else ('cell-self' if loop.index0 == i else 'cell-low')) }}">
+                            {{ cell }}%
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+</main>
+
+<footer class="footer">
+    NLP-Based Academic Plagiarism Detection System &nbsp;|&nbsp; 3rd Year CSE NLP Project
+</footer>
+
+<script>
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        event.target.classList.add('active');
+        document.getElementById('tab-' + tabName).classList.add('active');
+    }
+
+    {% if similarity is not none %}
+    window.addEventListener('DOMContentLoaded', () => {
+        const ctxRisk = document.getElementById('riskChart').getContext('2d');
+        new Chart(ctxRisk, {
+            type: 'doughnut',
+            data: {
+                labels: ['Plagiarism Similarity', 'Unique Original Content'],
+                datasets: [{
+                    data: [{{ similarity }}, {{ 100 - similarity }}],
+                    backgroundColor: ['#e63946', '#2a9d8f']
+                }]
+            },
+            options: { responsive: true, cutout: '70%' }
+        });
+    });
+    {% endif %}
+</script>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

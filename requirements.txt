@@ -1,0 +1,7 @@
+Flask
+nltk
+scikit-learn
+PyPDF2
+python-docx
+sentence-transformers
+reportlab
